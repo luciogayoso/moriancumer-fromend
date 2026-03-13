@@ -22,13 +22,13 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      
+
       {/* --- SECCIÓN HERO (BANNER PRINCIPAL) --- */}
-      <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[80vh] md:h-[85vh] flex items-center justify-center overflow-hidden py-12 md:py-0">
         {/* Imagen de fondo con Overlay oscuro */}
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat transition-transform duration-1000 hover:scale-105"
-          style={{ 
+          style={{
             backgroundImage: `url('https://images.unsplash.com/photo-1631281956016-3cdc1b2fe5fb?q=80&w=2000')`, // Puedes cambiar esta URL por una de tus fotos de impresión 3D
           }}
         >
@@ -36,25 +36,25 @@ export default function HomePage() {
         </div>
 
         {/* Contenido del Banner */}
-        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center text-white">
-          <span className="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest uppercase bg-blue-600 rounded-full animate-bounce">
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center text-white pt-10 md:pt-0">
+          <span className="inline-block px-4 py-1.5 mb-4 md:mb-6 text-[10px] md:text-xs font-bold tracking-widest uppercase bg-blue-600 rounded-full animate-bounce">
             Novedad: Templos en Alta Definición
           </span>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tighter">
+          <h1 className="text-4xl md:text-7xl font-black mb-4 md:mb-6 leading-tight tracking-tighter">
             Impresiones 3D con <br /> <span className="text-blue-400">Significado Eterno</span>
           </h1>
           <p className="text-lg md:text-xl mb-10 text-slate-200 max-w-2xl mx-auto font-light">
             Lleva a tu hogar réplicas detalladas y arte inspirado en los valores de la Iglesia de Jesucristo. Calidad premium en cada detalle.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/catalogo" 
+            <Link
+              href="/catalogo"
               className="px-10 py-4 bg-white text-blue-900 font-bold rounded-2xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 shadow-xl"
             >
               Ir a la Tienda <ChevronRight size={20} />
             </Link>
-            <Link 
-              href="/nosotros" 
+            <Link
+              href="/nosotros"
               className="px-10 py-4 bg-transparent border-2 border-white/30 text-white font-bold rounded-2xl hover:bg-white/10 transition-all backdrop-blur-md"
             >
               Conócenos
@@ -106,7 +106,7 @@ export default function HomePage() {
           {destacados.map((p) => (
             <div key={p.id} className="group cursor-pointer">
               <div className="relative h-64 bg-slate-100 rounded-3xl mb-4 overflow-hidden shadow-sm">
-                <img 
+                <img
                   src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos-imagenes/${p.imagen_url}`}
                   alt={p.nombre}
                   className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500"
