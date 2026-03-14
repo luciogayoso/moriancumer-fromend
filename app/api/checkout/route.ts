@@ -15,7 +15,14 @@ export async function POST(request: Request) {
 
         const baseUrl = new URL(process.env.NEXT_PUBLIC_URL || 'http://localhost:3000').origin;
 
-        // Construimos la lista de ítems incluyendo el envío
+        // Calcular subtotal para verificar si aplica envío gratis
+        const subtotal = items.reduce((acc: number, item: any) => 
+            acc + (Number(item.producto.precio) * Number(item.cantidad)), 0
+        );
+
+        // El envío es gratis si supera los 50.000
+        const esEnvioGratis = subtotal >= 50000;
+
         const itemsParaPago = [
             ...items.map((item: any) => ({
                 title: item.producto.nombre,
@@ -23,14 +30,17 @@ export async function POST(request: Request) {
                 quantity: Number(item.cantidad),
                 currency_id: 'ARS',
             })),
-            // Si el envío tiene costo, se agrega como un ítem más
-            ...(envio && envio.costo > 0 ? [{
+        ];
+
+        // Solo agregamos el costo de envío si NO es gratis y la zona tiene costo
+        if (!esEnvioGratis && envio && envio.costo > 0) {
+            itemsParaPago.push({
                 title: `Envío: ${envio.nombre}`,
                 unit_price: Number(envio.costo),
                 quantity: 1,
                 currency_id: 'ARS',
-            }] : [])
-        ];
+            });
+        }
 
         const body = {
             items: itemsParaPago,

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useCarrito } from '@/context/CarritoContext';
 import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
-import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, Loader2, Calculator, Truck } from 'lucide-react';
+import { Trash2, Plus, Minus, ShoppingBag, Loader2, Calculator, Truck, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY!);
@@ -25,7 +25,12 @@ export default function CarritoPage() {
   useEffect(() => { setIsMounted(true); }, []);
 
   const subtotal = carrito.reduce((acc, item) => acc + item.producto.precio * item.cantidad, 0);
-  const totalFinal = subtotal + zona.costo;
+  
+  // Lógica de Envío Gratis
+  const montoEnvioGratis = 50000;
+  const esEnvioGratis = subtotal >= montoEnvioGratis;
+  const costoFinalEnvio = esEnvioGratis ? 0 : zona.costo;
+  const totalFinal = subtotal + costoFinalEnvio;
 
   const handleCheckout = async () => {
     setIsLoading(true);
@@ -34,47 +39,53 @@ export default function CarritoPage() {
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: carrito, envio: zona }),
+        body: JSON.stringify({ items: carrito, envio: { ...zona, costo: costoFinalEnvio } }),
       });
       const data = await response.json();
       if (data.id) setPreferenceId(data.id);
     } catch (error) {
-      alert("Error al conectar con la pasarela de pagos");
+      alert("Error al conectar con Mercado Pago");
     } finally {
       setIsLoading(false);
     }
   };
 
   if (!isMounted) return null;
-  if (carrito.length === 0) return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh]">
-      <ShoppingBag size={48} className="text-slate-300 mb-4" />
-      <h2 className="text-xl font-bold">Tu carrito está vacío</h2>
-      <Link href="/catalogo" className="mt-4 text-blue-600 font-bold">Volver a la tienda</Link>
-    </div>
-  );
+  if (carrito.length === 0) return <div className="p-20 text-center font-bold">Carrito Vacío</div>;
 
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-12">
-      <h1 className="text-4xl font-black text-blue-900 mb-10 tracking-tighter">TU PEDIDO</h1>
+      <h1 className="text-4xl font-black text-blue-900 mb-10 tracking-tighter italic">CARRITO</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
         <div className="lg:col-span-2 space-y-4">
+          {/* Barra de progreso para envío gratis */}
+          {!esEnvioGratis && (
+            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6">
+              <p className="text-sm text-blue-800 font-medium flex items-center gap-2">
+                <Truck size={18} /> 
+                ¡Estás a <span className="font-bold">${montoEnvioGratis - subtotal}</span> del envío gratis!
+              </p>
+              <div className="w-full bg-blue-200 h-2 rounded-full mt-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-500" 
+                  style={{ width: `${(subtotal / montoEnvioGratis) * 100}%` }}
+                />
+              </div>
+            </div>
+          )}
+
           {carrito.map((item) => (
-            <div key={item.producto.id} className="flex items-center gap-6 bg-white p-5 rounded-[24px] border border-slate-100 shadow-sm">
-              <img 
-                src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos-imagenes/${item.producto.imagen_url}`} 
-                className="w-20 h-20 object-contain bg-slate-50 rounded-xl" 
-                alt={item.producto.nombre} 
-              />
+            <div key={item.producto.id} className="flex items-center gap-6 bg-white p-5 rounded-[24px] border shadow-sm">
+              <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/productos-imagenes/${item.producto.imagen_url}`} className="w-20 h-20 object-contain" alt={item.producto.nombre} />
               <div className="flex-1">
-                <h3 className="font-bold text-slate-800">{item.producto.nombre}</h3>
+                <h3 className="font-bold">{item.producto.nombre}</h3>
                 <p className="text-blue-600 font-black">${item.producto.precio}</p>
                 <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center bg-slate-100 rounded-lg px-2">
-                    <button onClick={() => agregarAlCarrito(item.producto, -1)} className="p-1"><Minus size={14}/></button>
-                    <span className="w-8 text-center font-bold text-sm">{item.cantidad}</span>
-                    <button onClick={() => agregarAlCarrito(item.producto, 1)} className="p-1"><Plus size={14}/></button>
+                  <div className="flex items-center bg-slate-100 rounded-lg">
+                    <button onClick={() => agregarAlCarrito(item.producto, -1)} className="p-2"><Minus size={14}/></button>
+                    <span className="w-8 text-center font-bold">{item.cantidad}</span>
+                    <button onClick={() => agregarAlCarrito(item.producto, 1)} className="p-2"><Plus size={14}/></button>
                   </div>
                   <button onClick={() => eliminarDelCarrito(item.producto.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>
@@ -85,28 +96,38 @@ export default function CarritoPage() {
 
         <div className="lg:col-span-1">
           <div className="bg-white p-8 rounded-[32px] border shadow-xl sticky top-28">
-            <div className="flex items-center gap-2 mb-6"><Calculator className="text-blue-600" /> <h2 className="font-black text-xl">RESUMEN</h2></div>
+            <h2 className="font-black text-xl mb-6 flex items-center gap-2"><Calculator /> RESUMEN</h2>
             
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4">
               <div className="flex justify-between text-slate-500"><span>Subtotal</span><span className="font-bold text-slate-900">${subtotal}</span></div>
               
-              <div className="pt-2">
-                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Seleccionar Zona de Envío</label>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Zona de Envío</label>
                 <select 
                   className="w-full p-3 rounded-xl border bg-slate-50 text-xs font-bold"
                   onChange={(e) => setZona(TABLA_ZONAS.find(z => z.id === e.target.value)!)}
+                  disabled={esEnvioGratis && zona.id !== 'retiro'}
                 >
                   {TABLA_ZONAS.map(z => <option key={z.id} value={z.id}>{z.nombre} (+${z.costo})</option>)}
                 </select>
               </div>
 
-              <div className="flex justify-between text-slate-500 pt-2">
-                <span className="flex items-center gap-1"><Truck size={14}/> Envío</span>
-                <span className="font-bold text-green-600">{zona.costo === 0 ? 'GRATIS' : `$${zona.costo}`}</span>
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500">Envío</span>
+                {esEnvioGratis ? (
+                  <span className="text-green-600 font-bold flex items-center gap-1">
+                    <CheckCircle2 size={14} /> GRATIS
+                  </span>
+                ) : (
+                  <span className="font-bold">${zona.costo}</span>
+                )}
               </div>
               
               <div className="h-px bg-slate-100 my-4" />
-              <div className="flex justify-between items-end"><span className="font-bold text-lg">Total</span><span className="text-3xl font-black text-blue-900">${totalFinal}</span></div>
+              <div className="flex justify-between items-end">
+                <span className="font-bold">Total</span>
+                <span className="text-3xl font-black text-blue-900">${totalFinal}</span>
+              </div>
             </div>
 
             <div className="mt-8">
